@@ -40,4 +40,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    implementation("com.google.android.filament:filament-android:1.69.0")
+    implementation("com.google.android.filament:gltfio-android:1.69.0")
 }
