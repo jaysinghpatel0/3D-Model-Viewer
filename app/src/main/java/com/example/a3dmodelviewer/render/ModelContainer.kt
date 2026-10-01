@@ -1,4 +1,4 @@
-package com.example.modelviewer.render
+package com.example.a3dmodelviewer.render
 
 import com.google.android.filament.Camera
 import com.google.android.filament.Scene

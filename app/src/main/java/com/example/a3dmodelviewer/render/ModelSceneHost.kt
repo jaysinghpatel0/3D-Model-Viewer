@@ -1,4 +1,4 @@
-package com.example.modelviewer.render
+package com.example.a3dmodelviewer.render
 
 import android.app.ActivityManager
 import android.content.Context
