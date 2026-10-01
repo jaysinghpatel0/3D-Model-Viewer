@@ -4,7 +4,8 @@ import android.util.Log
 import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.collections.emptyList
+
+class PartLabel(val text: String, val x: Float, val y: Float, val z: Float)
 
 object GlbLabelParser {
     private const val TAG = "GlbLabelParser"

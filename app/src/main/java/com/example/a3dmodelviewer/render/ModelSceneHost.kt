@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.Choreographer
 import android.view.Surface
 import android.view.SurfaceView
-import com.example.a3dmodelviewer.render.GlbLabelParser
 import android.view.View as AndroidView
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
