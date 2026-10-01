@@ -7,10 +7,11 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Region
 import android.os.Build
+import android.view.MotionEvent
 import android.view.View
-import androidx.compose.remote.creation.dsl.hypot
 import com.example.a3dmodelviewer.render.ModelContainer
 import com.example.a3dmodelviewer.render.ModelSceneHost
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
@@ -210,5 +211,93 @@ class OverlayView(context: Context, private val host: ModelSceneHost) : View(con
         }
         return -1
     }
+
+    // =====================================================================
+    // touch: container hit-test, then route by mode
+    //
+    //   NORMAL      : 1 finger = move container   | 2 fingers = resize container
+    //   INTERACTION : 1 finger = rotate model     | 2 fingers = zoom model
+    //
+    // The container is chosen on ACTION_DOWN and stays locked for the whole gesture, and the
+    // mode can only change through a button press, so the two modes can never mix.
+    // =====================================================================
+
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                val c = host.hitTest(e.x, e.y)
+                active = c
+                pressedButton = -1
+                lastSpan = 0f
+                lastX = e.x
+                lastY = e.y
+                if (c != null) {
+                    val b = buttonAt(c, e.x, e.y)
+                    if (b >= 0) pressedButton = b else host.bringToFront(c)
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                if (active != null && pressedButton < 0 && e.pointerCount >= 2) lastSpan = span(e)
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val c = active ?: return true
+                if (pressedButton >= 0) return true
+                if (e.pointerCount >= 2) {
+                    val s = span(e)
+                    if (lastSpan > 0f && s > 0f) applyPinch(c, s / lastSpan)
+                    lastSpan = s
+                } else {
+                    applyDrag(c, e.x - lastX, e.y - lastY)
+                    lastX = e.x
+                    lastY = e.y
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_POINTER_UP -> {
+                // re-baseline with the finger that stays down so nothing jumps
+                val remaining = (0 until e.pointerCount).first { it != e.actionIndex }
+                lastX = e.getX(remaining)
+                lastY = e.getY(remaining)
+                lastSpan = 0f
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                val c = active
+                if (c != null && pressedButton >= 0 && buttonAt(c, e.x, e.y) == pressedButton) {
+                    when (pressedButton) {
+                        BTN_INTERACT -> host.toggleInteraction(c)
+                        BTN_LABELS -> host.toggleLabels(c)
+                        BTN_CLOSE -> host.close(c)
+                    }
+                }
+                active = null
+                pressedButton = -1
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                active = null
+                pressedButton = -1
+                return true
+            }
+        }
+        return super.onTouchEvent(e)
+    }
+
+    private fun applyDrag(c: ModelContainer, dx: Float, dy: Float) {
+        if (c.interactionMode) host.rotateBy(c, dx, dy) else host.moveBy(c, dx, dy)
+    }
+
+    private fun applyPinch(c: ModelContainer, factor: Float) {
+        if (c.interactionMode) host.zoomBy(c, factor) else host.resizeBy(c, factor)
+    }
+
+    private fun span(e: MotionEvent): Float = hypot(e.getX(0) - e.getX(1), e.getY(0) - e.getY(1))
 }
 private const val Color_WHITE = 0xFFFFFFFF.toInt()
